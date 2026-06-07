@@ -20,15 +20,24 @@ Task tool (general-purpose):
 
     {PLAN_OR_REQUIREMENTS}
 
-    ## Git Range to Review
+    ## Changes to Review
 
     **Base:** {BASE_SHA}
     **Head:** {HEAD_SHA}
 
+    If reviewing committed work:
     ```bash
     git diff --stat {BASE_SHA}..{HEAD_SHA}
     git diff {BASE_SHA}..{HEAD_SHA}
     ```
+
+    If `{HEAD_SHA}` is the literal `WORKING`, the changes are not yet committed
+    (the human reviews before each commit). Review the working tree instead:
+    ```bash
+    git diff --stat {BASE_SHA}
+    git diff {BASE_SHA}
+    ```
+    This shows everything since `{BASE_SHA}`, including staged and unstaged changes.
 
     ## What to Check
 
@@ -125,7 +134,7 @@ Task tool (general-purpose):
 - `{DESCRIPTION}` — brief summary of what was built
 - `{PLAN_OR_REQUIREMENTS}` — what it should do (plan file path, task text, or requirements)
 - `{BASE_SHA}` — starting commit
-- `{HEAD_SHA}` — ending commit
+- `{HEAD_SHA}` — ending commit, or the literal `WORKING` to review uncommitted changes in the working tree
 
 **Reviewer returns:** Strengths, Issues (Critical / Important / Minor), Recommendations, Assessment
 

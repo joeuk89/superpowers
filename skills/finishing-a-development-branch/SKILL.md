@@ -94,7 +94,30 @@ Which option?
 
 ### Step 5: Execute Choice
 
+#### Optional: Squash commits (Options 1 & 2)
+
+If the branch has several per-task commits and the human wants a tidy history,
+offer to squash them into one **before** merging or pushing:
+
+```
+This branch has <N> commits. Squash them into a single commit? [y/n]
+```
+
+If yes (run only before pushing — squashing rewrites history):
+
+```bash
+BASE=$(git merge-base HEAD <base-branch>)
+git reset --soft "$BASE"   # keeps all changes staged, drops the per-task commits
+git commit -m "<message>"  # confirm the message with the human first
+```
+
+Tests already passed in Step 1 and the tree is unchanged, so there's no need to
+re-run them. If the branch was already pushed, squashing requires
+`git push --force-with-lease` — only do that with explicit user request.
+
 #### Option 1: Merge Locally
+
+**Optional:** offer to squash first (see above) before merging.
 
 ```bash
 # Get main repo root for CWD safety
@@ -119,6 +142,8 @@ git branch -d <feature-branch>
 ```
 
 #### Option 2: Push and Create PR
+
+**Optional:** offer to squash first (see above) before pushing.
 
 ```bash
 # Push branch

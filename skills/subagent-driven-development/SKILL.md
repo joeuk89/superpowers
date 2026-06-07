@@ -11,7 +11,9 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
-**Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
+**Human review gate (per task):** After each task's reviews pass, STOP. Do not commit, and do not start the next task. Stage the changes, present a concise summary of what changed (with the diff) and a proposed commit message, and wait for your human partner's explicit approval. They review everything before anything is committed. Only after they approve do you commit (or let them commit) and move to the next task. Stopping between tasks is the point — "Ready for your review?" is exactly the checkpoint they want, not wasted time. The only times you stop *without* a finished task to show are: BLOCKED status you cannot resolve, or ambiguity that genuinely prevents progress.
+
+**Commit per task (after approval) — squash later if they want fewer.** Commit each task right after the human approves its diff. This is what keeps every review scoped to one task: the reviewer and the human diff the staged changes against the *previous task's commit*. Do NOT defer commits across tasks — uncommitted earlier work pollutes the next task's diff and makes its review useless. If the human wants a tidy history with fewer commits, keep the per-task commits during execution and squash them at the end (`superpowers:finishing-a-development-branch` offers this via `git reset --soft`). Never commit without their approval.
 
 ## When to Use
 
@@ -37,7 +39,7 @@ digraph when_to_use {
 - Same session (no context switch)
 - Fresh subagent per task (no context pollution)
 - Two-stage review after each task: spec compliance first, then code quality
-- Faster iteration (no human-in-loop between tasks)
+- Human review gate between tasks (you review and approve before each commit)
 
 ## The Process
 
@@ -50,13 +52,14 @@ digraph process {
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
-        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Implementer subagent implements, tests, self-reviews (no commit)" [shape=box];
         "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
         "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
         "Implementer subagent fixes spec gaps" [shape=box];
         "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
         "Code quality reviewer subagent approves?" [shape=diamond];
         "Implementer subagent fixes quality issues" [shape=box];
+        "Human reviews diff, approves, commits" [shape=box style=filled fillcolor=lightyellow];
         "Mark task complete in TodoWrite" [shape=box];
     }
 
@@ -69,8 +72,8 @@ digraph process {
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
+    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, self-reviews (no commit)" [label="no"];
+    "Implementer subagent implements, tests, self-reviews (no commit)" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
     "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
     "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
     "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
@@ -78,7 +81,8 @@ digraph process {
     "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
+    "Code quality reviewer subagent approves?" -> "Human reviews diff, approves, commits" [label="yes"];
+    "Human reviews diff, approves, commits" -> "Mark task complete in TodoWrite";
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
@@ -148,15 +152,21 @@ Implementer: "Got it. Implementing now..."
   - Implemented install-hook command
   - Added tests, 5/5 passing
   - Self-review: Found I missed --force flag, added it
-  - Committed
+  - Staged changes (did NOT commit)
 
 [Dispatch spec compliance reviewer]
 Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 
-[Get git SHAs, dispatch code quality reviewer]
+[Dispatch code quality reviewer on the uncommitted diff (BASE_SHA=branch tip, HEAD_SHA=WORKING)]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
-[Mark Task 1 complete]
+[Human review gate]
+You: Task 1 implemented and reviewed. Changes are staged but not committed.
+    Proposed commit: "feat: add install-hook command". Here's the diff — review
+    and tell me to commit + continue.
+Human: Looks good — commit and continue.
+
+[Commit Task 1, mark complete]
 
 Task 2: Recovery modes
 
@@ -168,7 +178,7 @@ Implementer:
   - Added verify/repair modes
   - 8/8 tests passing
   - Self-review: All good
-  - Committed
+  - Staged changes (did NOT commit)
 
 [Dispatch spec compliance reviewer]
 Spec reviewer: ❌ Issues:
@@ -190,7 +200,12 @@ Implementer: Extracted PROGRESS_INTERVAL constant
 [Code reviewer reviews again]
 Code reviewer: ✅ Approved
 
-[Mark Task 2 complete]
+[Human review gate]
+You: Task 2 done and reviewed. Staged, not committed. Proposed commit:
+    "feat: add verify/repair modes". Review the diff and tell me to proceed.
+Human: Approved — commit and continue.
+
+[Commit Task 2, mark complete]
 
 ...
 
@@ -211,8 +226,8 @@ Done!
 
 **vs. Executing Plans:**
 - Same session (no handoff)
-- Continuous progress (no waiting)
-- Review checkpoints automatic
+- Human review gate between tasks (nothing commits without your approval)
+- Review checkpoints automatic (AI spec + quality review, then your review)
 
 **Efficiency gains:**
 - No file reading overhead (controller provides full text)
@@ -248,6 +263,8 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- **Commit without your human partner's explicit approval** (they review every change first)
+- **Start the next task before the human has reviewed and approved the current one**
 
 **If subagent asks questions:**
 - Answer clearly and completely

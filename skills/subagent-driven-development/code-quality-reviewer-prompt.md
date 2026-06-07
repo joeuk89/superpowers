@@ -12,9 +12,13 @@ Task tool (general-purpose):
 
   DESCRIPTION: [task summary, from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
+  BASE_SHA: [the previous task's commit = current branch tip; this task's work is staged, not committed]
+  HEAD_SHA: WORKING   # implementer staged but did NOT commit; review the uncommitted diff
 ```
+
+**Note:** The implementer does not commit. The human reviews and commits only after
+this quality review passes, so the reviewer reviews uncommitted changes
+(`git diff {BASE_SHA}`), not a commit range.
 
 **In addition to standard code quality concerns, the reviewer should check:**
 - Does each file have one clear responsibility with a well-defined interface?

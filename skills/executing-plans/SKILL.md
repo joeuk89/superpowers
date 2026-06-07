@@ -25,9 +25,10 @@ Load plan, review critically, execute all tasks, report when complete.
 
 For each task:
 1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
+2. Follow each step exactly (plan has bite-sized steps), EXCEPT do not run the plan's commit step
 3. Run verifications as specified
-4. Mark as completed
+4. **Human review gate:** Stage the changes (`git add`) and STOP. Present a concise summary of what changed (with the diff) and a proposed commit message. Wait for your human partner's explicit approval — they review everything before anything is committed. Once approved, **commit this task** (do not defer — committing per task keeps the next task's review scoped to just that task). Never commit without approval.
+5. Mark as completed, then move to the next task
 
 ### Step 3: Complete Development
 
@@ -35,6 +36,7 @@ After all tasks complete and verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
+- If the human wants a tidy history, that skill can squash the per-task commits into one before merge/PR
 
 ## When to Stop and Ask for Help
 
@@ -60,6 +62,8 @@ After all tasks complete and verified:
 - Don't skip verifications
 - Reference skills when plan says to
 - Stop when blocked, don't guess
+- Never commit without your human partner's explicit approval — stop for review after each task
+- Commit per task (don't defer); squash at the end if they want fewer commits
 - Never start implementation on main/master branch without explicit user consent
 
 ## Integration
