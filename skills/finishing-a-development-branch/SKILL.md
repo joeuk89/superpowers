@@ -106,7 +106,19 @@ This branch has <N> commits. Squash them into a single commit? [y/n]
 If yes (run only before pushing — squashing rewrites history):
 
 ```bash
+# Squash base = where this branch diverged from <base-branch>:
 BASE=$(git merge-base HEAD <base-branch>)
+# ⚠️ merge-base is the right base ONLY if the branch contains nothing but this
+# feature's commits. If it also carries earlier, unrelated commits (e.g. it's stacked
+# on prior work that isn't merged yet), merge-base would squash those too — instead set
+# BASE to the parent of this feature's FIRST commit:
+#   BASE=<first-feature-commit>^
+# Sanity check before resetting — this must list ONLY the commits you mean to squash:
+#   git log --oneline "$BASE"..HEAD
+#
+# Use `git reset --soft` + a fresh `git commit` — NOT `git rebase -i` squash/fixup:
+# reset+commit stamps the new commit with today's date for BOTH author and committer;
+# rebase -i squash/fixup preserves the FIRST commit's author date.
 git reset --soft "$BASE"   # keeps all changes staged, drops the per-task commits
 git commit -m "<message>"  # confirm the message with the human first
 ```
